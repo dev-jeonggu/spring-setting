@@ -138,6 +138,8 @@ spring:
     console:
       enabled: true
       path: /h2-console
+      settings:
+        web-allow-others: true   # Docker 컨테이너 외부(호스트 브라우저)에서 접속 허용
 
   data:
     redis:
