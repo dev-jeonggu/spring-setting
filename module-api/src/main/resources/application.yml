@@ -1,0 +1,152 @@
+spring:
+  profiles:
+    active: dev
+
+  application:
+    name: pg-payment
+
+---
+# ============================================================
+# DEV 환경 — H2 인메모리 DB, Mock 카드사, 로컬 Redis
+# ============================================================
+spring:
+  config:
+    activate:
+      on-profile: dev
+
+  datasource:
+    url: jdbc:h2:mem:pgpayment;MODE=MySQL;DB_CLOSE_DELAY=-1
+    username: sa
+    password:
+    driver-class-name: org.h2.Driver
+    hikari:
+      maximum-pool-size: 5
+      minimum-idle: 5
+      connection-timeout: 30000
+      idle-timeout: 600000
+      max-lifetime: 1800000
+      pool-name: PGPaymentPool-dev
+
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
+
+  data:
+    redis:
+      host: localhost
+      port: 6379
+
+  cache:
+    type: redis
+
+# 카드사 API 설정 — dev는 Mock URL (실제 호출 안 함, @Profile("dev") MockCardApiClient 사용)
+pg:
+  card:
+    shinhan-url: http://localhost:9001/mock/shinhan
+    kb-url: http://localhost:9001/mock/kb
+    samsung-url: http://localhost:9001/mock/samsung
+    timeout: 5000
+  webhook:
+    retry-count: 3
+    retry-interval: 1000
+  fee:
+    default-rate: 0.033
+
+# JWT 설정
+jwt:
+  secret: pg-payment-dev-secret-key-must-be-256-bits-long-for-hs256!
+
+# Actuator
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      show-details: always
+      show-components: always
+
+# Resilience4j Circuit Breaker 설정
+resilience4j:
+  circuitbreaker:
+    instances:
+      shinhan-card:
+        sliding-window-size: 10
+        failure-rate-threshold: 50
+        wait-duration-in-open-state: 30s
+        permitted-number-of-calls-in-half-open-state: 3
+        register-health-indicator: true
+      kb-card:
+        sliding-window-size: 10
+        failure-rate-threshold: 50
+        wait-duration-in-open-state: 30s
+      samsung-card:
+        sliding-window-size: 10
+        failure-rate-threshold: 50
+        wait-duration-in-open-state: 30s
+
+logging:
+  level:
+    com.pgpayment: DEBUG
+    org.springframework.security: DEBUG
+  pattern:
+    console: "%d{HH:mm:ss} [%X{traceId}] %-5level %logger{36} - %msg%n"
+
+---
+# ============================================================
+# PROD 환경 — MySQL, 실제 카드사 API
+# ============================================================
+spring:
+  config:
+    activate:
+      on-profile: prod
+
+  datasource:
+    url: ${DB_URL}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    hikari:
+      maximum-pool-size: 20
+      minimum-idle: 20
+      connection-timeout: 30000
+      idle-timeout: 600000
+      max-lifetime: 1800000
+      pool-name: PGPaymentPool-prod
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+
+  data:
+    redis:
+      host: ${REDIS_HOST}
+      port: 6379
+      password: ${REDIS_PASSWORD}
+
+pg:
+  card:
+    shinhan-url: ${SHINHAN_API_URL}
+    kb-url: ${KB_API_URL}
+    samsung-url: ${SAMSUNG_API_URL}
+    timeout: 10000
+
+jwt:
+  secret: ${JWT_SECRET}
+
+logging:
+  level:
+    com.pgpayment: INFO
+  pattern:
+    console: "%d{ISO8601} [%X{traceId}] %-5level %logger{36} - %msg%n"
