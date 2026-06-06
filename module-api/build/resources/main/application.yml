@@ -110,6 +110,88 @@ logging:
 
 ---
 # ============================================================
+# DEV-DOCKER 환경 — dev와 동일하지만 Redis 사용 (docker-compose 전용)
+# ============================================================
+spring:
+  config:
+    activate:
+      on-profile: dev-docker
+
+  datasource:
+    hikari:
+      jdbc-url: jdbc:h2:mem:pgpayment;MODE=MySQL;DB_CLOSE_DELAY=-1
+      username: sa
+      password:
+      driver-class-name: org.h2.Driver
+      maximum-pool-size: 5
+      minimum-idle: 5
+      connection-timeout: 30000
+      pool-name: PGPaymentPool-docker
+
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    defer-datasource-initialization: true
+    show-sql: false
+
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
+
+  data:
+    redis:
+      host: redis   # docker-compose 서비스명
+      port: 6379
+
+  cache:
+    type: redis   # Docker 환경에서는 Redis 캐시 활성화
+
+pg:
+  card:
+    shinhan-url: http://localhost:9001/mock/shinhan
+    kb-url: http://localhost:9001/mock/kb
+    samsung-url: http://localhost:9001/mock/samsung
+    timeout: 5000
+
+jwt:
+  secret: pg-payment-dev-secret-key-must-be-256-bits-long-for-hs256!
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: always
+      show-components: always
+
+resilience4j:
+  circuitbreaker:
+    instances:
+      shinhan-card:
+        sliding-window-size: 5
+        failure-rate-threshold: 50
+        wait-duration-in-open-state: 10s
+        permitted-number-of-calls-in-half-open-state: 2
+      kb-card:
+        sliding-window-size: 5
+        failure-rate-threshold: 50
+        wait-duration-in-open-state: 10s
+      samsung-card:
+        sliding-window-size: 5
+        failure-rate-threshold: 50
+        wait-duration-in-open-state: 10s
+
+logging:
+  level:
+    com.pgpayment: INFO
+  pattern:
+    console: "%d{HH:mm:ss} [%X{traceId}] %-5level %logger{36} - %msg%n"
+
+---
+# ============================================================
 # PROD 환경 — MySQL, 실제 카드사 API
 # ============================================================
 spring:

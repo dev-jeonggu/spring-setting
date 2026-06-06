@@ -34,11 +34,6 @@ import javax.sql.DataSource;
  *
  * 장점: 빠른 커넥션 획득, 풀 재사용으로 DB 연결 오버헤드 제거
  * 단점: 풀 크기 튜닝 잘못 시 DB 서버 과부하 또는 타임아웃 급증
- *
- * 면접 포인트:
- *   Q. 피크타임 결제 폭주 시 어떻게 대응했나?
- *   A. HikariCP maximumPoolSize를 CPU 코어 기반으로 계산,
- *      connectionTimeout과 keepaliveTime 조정으로 대기 오류 감소
  */
 @Slf4j
 @Configuration

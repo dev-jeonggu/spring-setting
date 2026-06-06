@@ -20,10 +20,6 @@ import java.util.Set;
  *   - 상태가 많아지면 전이 테이블 관리가 복잡해짐
  *   - Spring State Machine 라이브러리 도입 vs 직접 구현 트레이드오프
  *     (직접 구현이 단순한 경우 더 이해하기 쉬움)
- *
- * 면접 포인트:
- *   Q. 잘못된 상태 전이를 어떻게 막았나?
- *   A. EnumMap으로 허용 전이 테이블 정의, 서비스 레이어 진입 시 검증
  */
 @Component
 public class StatusTransitionValidator {

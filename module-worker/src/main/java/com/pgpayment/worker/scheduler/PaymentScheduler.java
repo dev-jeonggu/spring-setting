@@ -30,10 +30,6 @@ import java.util.Set;
  *   - 다중 인스턴스 배포 시 모든 인스턴스에서 실행 → 중복 실행 문제
  *     → 해결: ShedLock(@SchedulerLock), DB 분산 락, Quartz 클러스터
  *   - 단일 쓰레드 기본값 → AsyncConfig에서 ThreadPoolTaskScheduler 설정 필요
- *
- * 면접 포인트:
- *   Q. 스케줄러 다중 인스턴스 배포 시 중복 실행 어떻게 막나?
- *   A. ShedLock 라이브러리 사용 — DB/Redis에 락을 저장하고 한 인스턴스만 실행
  */
 @Slf4j
 @Component

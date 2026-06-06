@@ -29,11 +29,6 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
  * 단점:
  *   - 필터 체인 순서 관리 필요 (addFilterBefore/After)
  *   - JWT 탈취 시 만료 전까지 무효화 어려움 (Redis 블랙리스트 필요)
- *
- * 면접 포인트:
- *   Q. API Key와 JWT를 동시에 지원하는 구조를 어떻게 만들었나?
- *   A. SecurityFilterChain에서 경로별 분기,
- *      /api/v1/** → ApiKeyFilter, /admin/** → JwtAuthFilter
  */
 @Configuration
 @EnableWebSecurity
@@ -46,10 +41,13 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         return http
-                .csrf(AbstractHttpConfigurer::disable) // REST API — CSRF 불필요
+                .csrf(AbstractHttpConfigurer::disable)
+                .headers(h -> h.frameOptions(f -> f.sameOrigin())) // H2 콘솔 iframe 허용 // REST API — CSRF 불필요
                 .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/actuator/health", "/actuator/info").permitAll()
+                        .requestMatchers("/demo/**").permitAll()   // 학습 데모 — 인증 불필요
+                        .requestMatchers("/h2-console/**").permitAll()
                         .requestMatchers("/admin/**").hasRole("ADMIN")
                         .requestMatchers("/api/v1/**").hasRole("MERCHANT")
                         .anyRequest().authenticated()

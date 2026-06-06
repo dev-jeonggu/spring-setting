@@ -34,11 +34,6 @@ import java.util.Map;
  *   - 직렬화 설정 복잡 (Jackson 설정 오류 시 ClassCastException)
  *   - Redis 장애 시 캐시 전체 불가 → CachingConfigurerSupport로 오류 처리 필요
  *   - 캐시 키 충돌 가능 → 네이밍 전략 명시 필요
- *
- * 면접 포인트:
- *   Q. @Cacheable만 붙이면 되는 것 아닌가?
- *   A. @EnableCaching 없으면 동작 안 함. CacheManager Bean 없으면 In-Memory 캐시 사용.
- *      실무에서는 TTL, 직렬화 전략, Redis 연결을 명시적으로 설정해야 함.
  */
 @Configuration
 @EnableCaching

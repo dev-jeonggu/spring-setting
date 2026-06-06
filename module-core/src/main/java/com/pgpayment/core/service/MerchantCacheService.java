@@ -26,10 +26,6 @@ import org.springframework.transaction.annotation.Transactional;
  *   - 가맹점 정보 변경 시 캐시 무효화(@CacheEvict) 필수
  *   - Redis 장애 시 DB 직접 조회로 폴백 필요 (현재 미구현)
  *   - 캐시 키 설계 실수 시 잘못된 데이터 반환 가능
- *
- * 면접 포인트:
- *   Q. 캐시 스탬피드 문제를 어떻게 해결하나?
- *   A. Redisson 분산 락 또는 Probabilistic Early Expiration 패턴
  */
 @Slf4j
 @Service

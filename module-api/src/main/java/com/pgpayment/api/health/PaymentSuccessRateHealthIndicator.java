@@ -23,11 +23,6 @@ import org.springframework.stereotype.Component;
  * 단점:
  *   - 헬스체크 자체가 부하를 줄 수 있음 (DB 쿼리 주의)
  *   - 임계값 설정이 주관적 → 잘못 설정 시 false alarm
- *
- * 면접 포인트:
- *   Q. 결제 성공률이 낮을 때 자동으로 어떻게 대응하나?
- *   A. /actuator/health → DOWN → k8s가 Pod 재시작 또는 트래픽 제거
- *      알림: AlertManager → PagerDuty → 온콜 엔지니어
  */
 @Slf4j
 @Component

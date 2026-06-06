@@ -31,11 +31,6 @@ import java.time.Duration;
  *   - Redis 장애 시 멱등성 검증 불가 → 폴백 전략 필요
  *   - 분산 환경에서 Redis 클러스터 구성 필요
  *   - 현재 구현은 응답 자체를 캐싱하지 않음 (개선 여지)
- *
- * 면접 포인트:
- *   Q. Redis가 다운되면 어떻게 되나?
- *   A. try-catch로 Redis 실패 시 처리 진행하되 별도 경고 로그,
- *      또는 DB 테이블을 fallback으로 사용
  */
 @Slf4j
 @Aspect

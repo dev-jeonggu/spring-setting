@@ -35,10 +35,6 @@ import java.util.concurrent.Executor;
  * @Scheduled 핵심:
  *   기본: 단일 쓰레드 스케줄러 → 하나의 배치가 오래 걸리면 나머지 지연
  *   실무: ThreadPoolTaskScheduler로 멀티쓰레드 처리
- *
- * 면접 포인트:
- *   Q. @Async가 동작 안 하는 경우?
- *   A. @EnableAsync 누락, 같은 클래스 내 자기 호출, private 메서드
  */
 @Slf4j
 @Configuration
