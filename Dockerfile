@@ -1,5 +1,5 @@
 # ── 1단계: 빌드 ──────────────────────────────────────────
-FROM eclipse-temurin:17-jdk-alpine AS builder
+FROM eclipse-temurin:17-jdk AS builder
 WORKDIR /app
 
 COPY gradlew settings.gradle build.gradle ./
@@ -22,11 +22,8 @@ COPY module-support/src ./module-support/src
 RUN ./gradlew :module-api:bootJar --no-daemon -x test
 
 # ── 2단계: 실행 ──────────────────────────────────────────
-FROM eclipse-temurin:17-jre-alpine
+FROM eclipse-temurin:17-jre
 WORKDIR /app
-
-RUN addgroup -S pgpay && adduser -S pgpay -G pgpay
-USER pgpay
 
 COPY --from=builder /app/module-api/build/libs/*.jar app.jar
 
