@@ -44,7 +44,16 @@ import java.util.Map;
 @EnableCaching
 public class CacheConfig {
 
+    /**
+     * Redis CacheManager — prod/staging 환경에서 활성화
+     *
+     * dev 환경: spring.cache.type=simple → Spring Boot 자동 구성이 ConcurrentMapCacheManager 사용
+     *           이 Bean은 @Profile("!dev")로 제외 → Redis 없어도 앱 실행 가능
+     *
+     * Redis 학습 시: dev의 cache.type을 redis로 변경 → 이 Bean이 활성화됨
+     */
     @Bean
+    @org.springframework.context.annotation.Profile("!dev")
     public CacheManager cacheManager(RedisConnectionFactory connectionFactory) {
         ObjectMapper objectMapper = new ObjectMapper()
                 .registerModule(new JavaTimeModule())

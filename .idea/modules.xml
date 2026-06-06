@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ProjectModuleManager">
+    <modules>
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/module-api/pg-payment.module-api.main.iml" filepath="$PROJECT_DIR$/.idea/modules/module-api/pg-payment.module-api.main.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/module-core/pg-payment.module-core.main.iml" filepath="$PROJECT_DIR$/.idea/modules/module-core/pg-payment.module-core.main.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/module-infra/pg-payment.module-infra.main.iml" filepath="$PROJECT_DIR$/.idea/modules/module-infra/pg-payment.module-infra.main.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/module-support/pg-payment.module-support.main.iml" filepath="$PROJECT_DIR$/.idea/modules/module-support/pg-payment.module-support.main.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/module-worker/pg-payment.module-worker.main.iml" filepath="$PROJECT_DIR$/.idea/modules/module-worker/pg-payment.module-worker.main.iml" />
+    </modules>
+  </component>
+</project>

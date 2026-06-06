@@ -44,28 +44,30 @@ import javax.sql.DataSource;
 @Configuration
 public class DataSourceConfig {
 
+    /**
+     * HikariCP DataSource Bean
+     *
+     * @ConfigurationProperties(prefix = "spring.datasource.hikari"):
+     *   application.yml의 spring.datasource.hikari.* 값을 HikariDataSource 필드에 자동 바인딩
+     *
+     * 주의: HikariCP는 spring.datasource.url이 아닌 spring.datasource.hikari.jdbc-url 키를 사용
+     *   → yml에서 hikari 블록 안에 jdbc-url로 명시해야 함 (흔한 설정 실수)
+     *
+     * CPU 코어 기반 풀 크기 자동 계산은 ApplicationRunner에서 로그로 출력
+     */
     @Bean
     @Primary
     @Profile("!test")
     @ConfigurationProperties(prefix = "spring.datasource.hikari")
     public DataSource dataSource() {
-        HikariDataSource ds = DataSourceBuilder.create()
-                .type(HikariDataSource.class)
-                .build();
-
-        // 풀 크기 계산 예시 (4코어 서버 기준)
         int cpuCores = Runtime.getRuntime().availableProcessors();
         int poolSize = (cpuCores * 2) + 1;
+        log.info("HikariCP 풀 크기 참고값: CPU {} 코어 → 권장 maxPoolSize={} (yml 설정값이 실제 적용됨)",
+                cpuCores, poolSize);
 
-        log.info("HikariCP 풀 크기 자동 계산: CPU {} 코어 → maxPoolSize={}", cpuCores, poolSize);
-        ds.setMaximumPoolSize(poolSize);
-        ds.setMinimumIdle(poolSize);
-        ds.setConnectionTimeout(30000);
-        ds.setIdleTimeout(600000);
-        ds.setMaxLifetime(1800000);
-        ds.setKeepaliveTime(60000);
-        ds.setPoolName("PGPaymentPool");
-
-        return ds;
+        // @ConfigurationProperties가 yml 값을 자동으로 바인딩함
+        return DataSourceBuilder.create()
+                .type(HikariDataSource.class)
+                .build();
     }
 }

@@ -57,8 +57,14 @@ public class IdempotencyAspect {
 
         String redisKey = KEY_PREFIX + idempotencyKey;
 
-        Boolean isNew = redisTemplate.opsForValue()
-                .setIfAbsent(redisKey, "PROCESSING", Duration.ofSeconds(idempotent.ttlSeconds()));
+        Boolean isNew;
+        try {
+            isNew = redisTemplate.opsForValue()
+                    .setIfAbsent(redisKey, "PROCESSING", Duration.ofSeconds(idempotent.ttlSeconds()));
+        } catch (Exception e) {
+            log.warn("Redis 미연결 — 멱등성 검증 스킵 (폴백: 처리 진행): {}", e.getMessage());
+            return pjp.proceed();
+        }
 
         if (Boolean.FALSE.equals(isNew)) {
             log.warn("중복 결제 요청 감지: idempotencyKey={}", idempotencyKey);

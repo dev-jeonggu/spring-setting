@@ -23,16 +23,29 @@ public class WebhookRetryRepository {
     private final StringRedisTemplate redisTemplate;
 
     public void save(String paymentId, String merchantId, String traceId) {
-        String value = paymentId + "|" + merchantId + "|" + traceId;
-        redisTemplate.opsForSet().add(DLQ_KEY, value);
-        log.debug("웹훅 DLQ 저장: {}", value);
+        try {
+            String value = paymentId + "|" + merchantId + "|" + traceId;
+            redisTemplate.opsForSet().add(DLQ_KEY, value);
+            log.debug("웹훅 DLQ 저장: {}", value);
+        } catch (Exception e) {
+            log.warn("Redis 미연결 — DLQ 저장 스킵: {}", e.getMessage());
+        }
     }
 
     public Set<String> findAll() {
-        return redisTemplate.opsForSet().members(DLQ_KEY);
+        try {
+            return redisTemplate.opsForSet().members(DLQ_KEY);
+        } catch (Exception e) {
+            log.debug("Redis 미연결 — DLQ 조회 스킵: {}", e.getMessage());
+            return java.util.Set.of();
+        }
     }
 
     public void remove(String value) {
-        redisTemplate.opsForSet().remove(DLQ_KEY, value);
+        try {
+            redisTemplate.opsForSet().remove(DLQ_KEY, value);
+        } catch (Exception e) {
+            log.warn("Redis 미연결 — DLQ 삭제 스킵: {}", e.getMessage());
+        }
     }
 }

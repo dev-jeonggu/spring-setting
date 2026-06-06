@@ -64,13 +64,18 @@ public class PaymentSuccessRateHealthIndicator implements HealthIndicator {
     }
 
     private double calculateSuccessRate() {
-        String successStr = redisTemplate.opsForValue().get("metrics:payment:success:1h");
-        String totalStr = redisTemplate.opsForValue().get("metrics:payment:total:1h");
+        try {
+            String successStr = redisTemplate.opsForValue().get("metrics:payment:success:1h");
+            String totalStr = redisTemplate.opsForValue().get("metrics:payment:total:1h");
 
-        if (totalStr == null || "0".equals(totalStr)) return 1.0; // 요청 없으면 정상
+            if (totalStr == null || "0".equals(totalStr)) return 1.0;
 
-        long success = successStr != null ? Long.parseLong(successStr) : 0;
-        long total = Long.parseLong(totalStr);
-        return (double) success / total;
+            long success = successStr != null ? Long.parseLong(successStr) : 0;
+            long total = Long.parseLong(totalStr);
+            return (double) success / total;
+        } catch (Exception e) {
+            log.debug("Redis 미연결 — 기본값 반환: {}", e.getMessage());
+            return 1.0; // Redis 없으면 정상으로 간주
+        }
     }
 }
