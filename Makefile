@@ -86,51 +86,35 @@ demo-all:
 
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 demo-hikari:
-	@$(MAKE) --no-print-directory _section title="[모듈 01] HikariCP 커넥션 풀"
-	@echo "$(YELLOW)  핵심: maxPoolSize = (CPU 코어 수 × 2) + 1$(RESET)"
-	@echo "$(YELLOW)  문제: 너무 크면 DB 과부하 / 너무 작으면 결제 대기 급증$(RESET)"
-	@echo ""
-	@curl -s http://$(HOST)/demo/hikari | python3 -m json.tool 2>/dev/null || curl -s http://$(HOST)/demo/hikari
+	@curl -s http://$(HOST)/demo/hikari
 
 demo-cache:
-	@$(MAKE) --no-print-directory _section title="[모듈 05] @Cacheable — 캐시 히트/미스"
-	@echo "$(YELLOW)  테스트: 동일 가맹점을 두 번 조회해서 응답속도 비교$(RESET)"
-	@echo "$(YELLOW)  첫 호출 = DB 조회(느림) → 두 번째 = 캐시 반환(빠름)$(RESET)"
-	@echo ""
-	@echo "$(CYAN)① 캐시 무효화 (초기화)$(RESET)"
-	@curl -s -X DELETE http://$(HOST)/demo/cache/merchant-001 | python3 -m json.tool 2>/dev/null || true
-	@echo ""
-	@echo "$(CYAN)② 캐시 히트/미스 비교$(RESET)"
-	@curl -s http://$(HOST)/demo/cache/merchant-001 | python3 -m json.tool 2>/dev/null || curl -s http://$(HOST)/demo/cache/merchant-001
+	@curl -s -X DELETE http://$(HOST)/demo/cache/merchant-001
+	@curl -s http://$(HOST)/demo/cache/merchant-001
 
 demo-statemachine:
-	@$(MAKE) --no-print-directory _section title="[모듈 09] State Machine — 상태 전이 검증"
-	@echo "$(YELLOW)  허용: READY→PENDING→SUCCESS→REFUND_REQUESTED→REFUNDED$(RESET)"
-	@echo "$(YELLOW)  차단: SUCCESS→READY, FAILED→SUCCESS 등 역방향$(RESET)"
-	@echo ""
-	@curl -s http://$(HOST)/demo/statemachine | python3 -m json.tool 2>/dev/null || curl -s http://$(HOST)/demo/statemachine
+	@curl -s http://$(HOST)/demo/statemachine
 
 demo-validation:
-	@$(MAKE) --no-print-directory _section title="[모듈 13] Bean Validation — 입력값 검증"
+	@curl -s http://$(HOST)/demo/validation
 	@echo ""
-	@echo "$(CYAN)① 정상 요청 → 200 OK$(RESET)"
-	@curl -s -w " [HTTP %{http_code}]" -X POST http://$(HOST)/api/v1/payments \
+	@echo "$(CYAN)── 실제 실행 결과 ──────────────────────────────────$(RESET)"
+	@echo "$(CYAN)① 정상 요청$(RESET)"
+	@curl -s -w "   → HTTP %{http_code}\n" -X POST http://$(HOST)/api/v1/payments \
 	  -H 'Content-Type: application/json' \
 	  -H 'X-Api-Key: $(API_KEY)' \
 	  -H 'X-Merchant-Id: $(MERCHANT_ID)' \
 	  -d '{"orderId":"VALID-001","amount":15000,"cardNumber":"1234567890123456","cardCompany":"shinhan"}'
 	@echo ""
-	@echo ""
-	@echo "$(CYAN)② 금액 0원 → 400 BAD_REQUEST (PG 에러코드 1001)$(RESET)"
-	@curl -s -w " [HTTP %{http_code}]" -X POST http://$(HOST)/api/v1/payments \
+	@echo "$(CYAN)② 금액 0원$(RESET)"
+	@curl -s -w "   → HTTP %{http_code}\n" -X POST http://$(HOST)/api/v1/payments \
 	  -H 'Content-Type: application/json' \
 	  -H 'X-Api-Key: $(API_KEY)' \
 	  -H 'X-Merchant-Id: $(MERCHANT_ID)' \
 	  -d '{"orderId":"INVALID-001","amount":0,"cardNumber":"1234567890123456","cardCompany":"shinhan"}'
 	@echo ""
-	@echo ""
-	@echo "$(CYAN)③ 카드번호 형식 오류 → 400 BAD_REQUEST$(RESET)"
-	@curl -s -w " [HTTP %{http_code}]" -X POST http://$(HOST)/api/v1/payments \
+	@echo "$(CYAN)③ 카드번호 형식 오류$(RESET)"
+	@curl -s -w "   → HTTP %{http_code}\n" -X POST http://$(HOST)/api/v1/payments \
 	  -H 'Content-Type: application/json' \
 	  -H 'X-Api-Key: $(API_KEY)' \
 	  -H 'X-Merchant-Id: $(MERCHANT_ID)' \
@@ -138,33 +122,23 @@ demo-validation:
 	@echo ""
 
 demo-tracing:
-	@$(MAKE) --no-print-directory _section title="MDC TraceId — 요청 추적"
-	@echo "$(YELLOW)  traceId가 로그와 응답 헤더에 자동 포함$(RESET)"
-	@echo "$(YELLOW)  'make logs'로 서버 로그에서 [traceId] 패턴 확인$(RESET)"
-	@echo ""
-	@echo "$(CYAN)① 자동 생성 traceId$(RESET)"
-	@curl -s -v http://$(HOST)/demo/tracing 2>&1 | grep -E "(X-Trace-Id|traceId|현재)"
-	@echo ""
-	@echo "$(CYAN)② 직접 지정 traceId = my-custom-trace-999$(RESET)"
-	@curl -s -H 'X-Trace-Id: my-custom-trace-999' http://$(HOST)/demo/tracing | python3 -m json.tool 2>/dev/null || true
+	@curl -s -H 'X-Trace-Id: my-custom-trace-999' http://$(HOST)/demo/tracing
 
 demo-idempotency:
 	@$(MAKE) --no-print-directory _section title="[모듈 08] 멱등성 — 중복 결제 차단"
 	@echo "$(YELLOW)  동일 X-Idempotency-Key로 두 번 요청$(RESET)"
 	@echo "$(YELLOW)  Redis 연결 시: 두 번째 → DUPLICATE_PAYMENT (2001)$(RESET)"
-	@echo "$(YELLOW)  Redis 미연결 시: 두 번 모두 처리 (폴백 동작)$(RESET)"
 	@echo ""
 	@echo "$(CYAN)① 첫 번째 결제 요청$(RESET)"
-	@curl -s -w " [HTTP %{http_code}]" -X POST http://$(HOST)/api/v1/payments \
+	@curl -s -w "   → HTTP %{http_code}\n" -X POST http://$(HOST)/api/v1/payments \
 	  -H 'Content-Type: application/json' \
 	  -H 'X-Api-Key: $(API_KEY)' \
 	  -H 'X-Merchant-Id: $(MERCHANT_ID)' \
 	  -H 'X-Idempotency-Key: idem-test-fixed-key' \
 	  -d '{"orderId":"IDEM-001","amount":9900,"cardNumber":"1234567890123456","cardCompany":"shinhan"}'
 	@echo ""
-	@echo ""
-	@echo "$(CYAN)② 동일 키로 재요청 (중복 차단 확인)$(RESET)"
-	@curl -s -w " [HTTP %{http_code}]" -X POST http://$(HOST)/api/v1/payments \
+	@echo "$(CYAN)② 동일 키로 재요청 → 중복 차단 확인$(RESET)"
+	@curl -s -w "   → HTTP %{http_code}\n" -X POST http://$(HOST)/api/v1/payments \
 	  -H 'Content-Type: application/json' \
 	  -H 'X-Api-Key: $(API_KEY)' \
 	  -H 'X-Merchant-Id: $(MERCHANT_ID)' \
@@ -174,25 +148,22 @@ demo-idempotency:
 
 demo-security:
 	@$(MAKE) --no-print-directory _section title="[모듈 03] Spring Security — API Key 인증"
-	@echo ""
-	@echo "$(CYAN)① 올바른 API Key → 200 OK$(RESET)"
-	@curl -s -w " [HTTP %{http_code}]" -X POST http://$(HOST)/api/v1/payments \
+	@echo "$(CYAN)① 올바른 API Key$(RESET)"
+	@curl -s -w "   → HTTP %{http_code}\n" -X POST http://$(HOST)/api/v1/payments \
 	  -H 'Content-Type: application/json' \
 	  -H 'X-Api-Key: test-api-key-001' \
 	  -H 'X-Merchant-Id: merchant-001' \
 	  -d '{"orderId":"SEC-001","amount":5000,"cardNumber":"1234567890123456","cardCompany":"shinhan"}'
 	@echo ""
-	@echo ""
-	@echo "$(CYAN)② 잘못된 API Key → 403 Forbidden$(RESET)"
-	@curl -s -w " [HTTP %{http_code}]" -X POST http://$(HOST)/api/v1/payments \
+	@echo "$(CYAN)② 잘못된 API Key$(RESET)"
+	@curl -s -w "   → HTTP %{http_code}\n" -X POST http://$(HOST)/api/v1/payments \
 	  -H 'Content-Type: application/json' \
 	  -H 'X-Api-Key: WRONG-API-KEY' \
 	  -H 'X-Merchant-Id: merchant-001' \
 	  -d '{"orderId":"SEC-002","amount":5000,"cardNumber":"1234567890123456","cardCompany":"shinhan"}'
 	@echo ""
-	@echo ""
-	@echo "$(CYAN)③ API Key 없음 → 403 Forbidden$(RESET)"
-	@curl -s -w " [HTTP %{http_code}]" -X POST http://$(HOST)/api/v1/payments \
+	@echo "$(CYAN)③ API Key 없음$(RESET)"
+	@curl -s -w "   → HTTP %{http_code}\n" -X POST http://$(HOST)/api/v1/payments \
 	  -H 'Content-Type: application/json' \
 	  -H 'X-Merchant-Id: merchant-001' \
 	  -d '{"orderId":"SEC-003","amount":5000,"cardNumber":"1234567890123456","cardCompany":"shinhan"}'
@@ -200,30 +171,24 @@ demo-security:
 
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 pay:
-	@echo "$(CYAN)▶ 결제 승인 요청$(RESET)"
-	@curl -s -X POST http://$(HOST)/api/v1/payments \
-	  -H 'Content-Type: application/json' \
-	  -H 'X-Api-Key: $(API_KEY)' \
-	  -H 'X-Merchant-Id: $(MERCHANT_ID)' \
-	  -d '{"orderId":"ORDER-$(shell date +%s)","amount":15000,"cardNumber":"1234567890123456","cardCompany":"shinhan"}' \
-	  | python3 -m json.tool 2>/dev/null || curl -s -X POST http://$(HOST)/api/v1/payments \
+	@curl -s -w "\n  → HTTP %{http_code}\n" -X POST http://$(HOST)/api/v1/payments \
 	  -H 'Content-Type: application/json' \
 	  -H 'X-Api-Key: $(API_KEY)' \
 	  -H 'X-Merchant-Id: $(MERCHANT_ID)' \
 	  -d '{"orderId":"ORDER-$(shell date +%s)","amount":15000,"cardNumber":"1234567890123456","cardCompany":"shinhan"}'
 
 pay-invalid:
-	@echo "$(CYAN)▶ 잘못된 결제 요청 (금액 -1)$(RESET)"
-	@curl -s -X POST http://$(HOST)/api/v1/payments \
+	@curl -s -w "\n  → HTTP %{http_code}\n" -X POST http://$(HOST)/api/v1/payments \
 	  -H 'Content-Type: application/json' \
 	  -H 'X-Api-Key: $(API_KEY)' \
 	  -H 'X-Merchant-Id: $(MERCHANT_ID)' \
-	  -d '{"orderId":"BAD-001","amount":-1,"cardNumber":"1234567890123456","cardCompany":"shinhan"}' \
-	  | python3 -m json.tool 2>/dev/null
+	  -d '{"orderId":"BAD-001","amount":-1,"cardNumber":"1234567890123456","cardCompany":"shinhan"}'
 
 health:
-	@echo "$(CYAN)▶ 헬스체크$(RESET)"
-	@curl -s http://$(HOST)/actuator/health | python3 -m json.tool 2>/dev/null
+	@curl -s http://$(HOST)/actuator/health \
+	  | python3 -c "import sys,json; d=json.load(sys.stdin); \
+	    print('\n  전체 상태:', d['status']); \
+	    [print(f'  {k:20s} {v[\"status\"]}') for k,v in d.get('components',{}).items()]; print()"
 
 # 내부 헬퍼
 _section:
