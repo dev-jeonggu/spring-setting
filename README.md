@@ -90,6 +90,7 @@ pg-payment/
 | 16 | AOP 로깅 | [LoggingAspect.java](module-support/src/main/java/com/pgpayment/support/aop/LoggingAspect.java) |
 | 17 | WebClient | [CardClientConfig.java](module-infra/src/main/java/com/pgpayment/infra/config/CardClientConfig.java) |
 | 18 | 도메인 이벤트 | [PaymentApprovedEvent.java](module-core/src/main/java/com/pgpayment/core/event/PaymentApprovedEvent.java) |
+| 19 | 분산 락 (Redisson) | [IdempotencyAspect.java](module-core/src/main/java/com/pgpayment/core/idempotency/IdempotencyAspect.java) |
 
 ---
 
@@ -127,9 +128,60 @@ pg-payment/
 - **장점** 관련 설정을 객체로 묶음, @Validated로 타입 검증 가능
 - **단점** @Value보다 설정 코드가 많음, 단순한 값 하나에는 과함
 
-### 멱등성 AOP (@Idempotent)
-- **장점** 네트워크 재시도로 인한 중복 결제 완전 차단
-- **단점** Redis 장애 시 검증 불가 → 폴백 전략 필요
+### 멱등성 AOP + 분산 락 (Redisson)
+
+`setIfAbsent` 단독으로는 막히지 않는 두 가지 경쟁 조건이 있었고, Redisson 분산 락으로 해결했다.
+
+#### 케이스 1 — Redis 장애 시 폴백 통과
+
+```
+[개선 전]
+Request 1 → setIfAbsent → Redis 예외 → catch → proceed() → 결제 실행
+Request 2 → setIfAbsent → Redis 예외 → catch → proceed() → 결제 실행 (중복!)
+```
+
+`setIfAbsent`가 예외를 던지면 catch 블록에서 그냥 `proceed()`를 호출했다.  
+Redis가 응답하지 않는 상황에서 동시 요청이 오면 둘 다 결제가 실행된다.
+
+```
+[개선 후]
+Request 1 → tryLock → 락 획득 실패 → 차단 (폴백 없음)
+Request 2 → tryLock → 락 획득 실패 → 차단 (폴백 없음)
+```
+
+분산 락 획득 자체가 실패하면 폴백 없이 즉시 요청을 거부한다.  
+Redis 장애가 곧 결제 불가를 의미하므로 Redis HA(Sentinel/Cluster) 구성이 필수다.
+
+재현 테스트: [IdempotencyRaceConditionTest#case1](module-core/src/test/java/com/pgpayment/core/idempotency/IdempotencyRaceConditionTest.java)  
+수정 검증: [DistributedLockIdempotencyTest#case1_fixed](module-core/src/test/java/com/pgpayment/core/idempotency/DistributedLockIdempotencyTest.java)
+
+#### 케이스 2 — 결제 실패 후 키 삭제 타이밍 경쟁
+
+```
+[개선 전]
+Thread 1: setIfAbsent("ORDER-1") → true → 결제 실행 중...
+Thread 1: 카드사 API 오류 → 결제 실패 → delete("ORDER-1")   ← 키 삭제
+Thread 2: setIfAbsent("ORDER-1") → true  ← 키가 없으니 통과
+Thread 2: 결제 실행 → 중복 승인
+```
+
+결제 실패 시 재시도를 허용하려고 키를 `delete()`했는데, 바로 그 순간 대기 중이던 다른 요청이 새 요청처럼 진입한다.
+
+```
+[개선 후]
+Thread 1: tryLock → 락 획득 → setIfAbsent → 결제 실패 → delete(key) → unlock
+Thread 2: tryLock → 락 대기 중 → Thread 1이 unlock 후 진입
+Thread 2: setIfAbsent → 키 없음 → true → 정상 재시도 (순차 처리)
+```
+
+락이 "키 확인 → 결제 실행 → 키 갱신" 전체 구간을 임계 영역으로 보호한다.  
+Thread 2는 Thread 1이 완전히 끝난 뒤에야 진입하므로 타이밍 경쟁 자체가 사라진다.
+
+재현 테스트: [IdempotencyRaceConditionTest#case2](module-core/src/test/java/com/pgpayment/core/idempotency/IdempotencyRaceConditionTest.java)  
+수정 검증: [DistributedLockIdempotencyTest#case2_fixed](module-core/src/test/java/com/pgpayment/core/idempotency/DistributedLockIdempotencyTest.java)
+
+- **장점** 경쟁 조건 완전 차단, tryLock 타임아웃으로 무한 대기 방지
+- **단점** Redis 완전 장애 시 결제 불가 → Redis HA 필수, 락 대기 시간만큼 응답 지연 가능
 
 ### State Machine
 - **장점** 허용된 상태 전이만 통과 → 데이터 정합성 보장
@@ -151,6 +203,6 @@ pg-payment/
 
 - Java 17 / Spring Boot 3.2.5
 - H2 (dev) / MySQL (prod)
-- Redis 7
+- Redis 7 / Redisson 3.27
 - Resilience4j 2.1
 - JWT (jjwt 0.12)
