@@ -3,6 +3,8 @@
 Spring Boot 멀티모듈로 구성한 PG(결제대행) 서비스입니다.  
 각 Spring 설정의 **동작 원리와 장단점**을 코드와 데모 API로 직접 확인할 수 있습니다.
 
+> Java 7 버전 비교 프로젝트: [spring-setting-legacy](../spring-setting-legacy)
+
 ---
 
 ## 실행 방법

@@ -51,7 +51,6 @@ public class PaymentAuditLog {
         this.paymentId = paymentId;
         this.previousStatus = previousStatus;
         this.newStatus = newStatus;
-        this.newStatus = newStatus;
         this.changedAt = LocalDateTime.now();
         this.traceId = traceId;
         this.changedBy = changedBy;

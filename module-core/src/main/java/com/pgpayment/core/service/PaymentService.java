@@ -68,6 +68,7 @@ public class PaymentService {
         // PENDING → SUCCESS
         transitionValidator.validate(payment.getStatus(), PaymentStatus.SUCCESS);
         payment.transition(PaymentStatus.SUCCESS);
+        paymentRepository.save(payment); // 상태 변경을 명시적으로 저장
 
         // Audit Trail 기록
         auditLogRepository.save(PaymentAuditLog.builder()
